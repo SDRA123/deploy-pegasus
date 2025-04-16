@@ -1,20 +1,32 @@
-# Use a lightweight Python base image
+# Use official lightweight Python image
 FROM python:3.10-slim
 
-# Set working directory in the container
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory
 WORKDIR /app
 
-# Copy requirements first to install dependencies (faster rebuilds)
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
 COPY requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Download nltk tokenizer during build
+RUN python -m nltk.downloader punkt
 
-# Copy your app code
+# Copy project files
 COPY . .
 
 # Expose the port FastAPI will run on
 EXPOSE 5000
 
-# Run FastAPI app using uvicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
+# Run the API
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
